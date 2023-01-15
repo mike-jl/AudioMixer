@@ -26,7 +26,7 @@ namespace AudioMixer
         private static Image volDnImage = Image.FromFile(@"Images\VolumeLow.png");
         private static Image muteImage = Image.FromFile(@"Images\VolumeMute.png");
 
-        public static Image CreateIconImage(Bitmap image)
+        public static Image CreateIconImage(Bitmap image, Boolean transparent = false)
         {
             Bitmap icon = new Bitmap(image);
             Bitmap clone = new Bitmap(144, 144, PixelFormat.Format32bppArgb);
@@ -36,7 +36,15 @@ namespace AudioMixer
                 graph.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 graph.SmoothingMode = SmoothingMode.HighQuality;
                 graph.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                graph.FillRectangle(Brushes.Black, new Rectangle(0, 0, 144, 144));
+                if (transparent)
+                {
+                    graph.FillRectangle(Brushes.Transparent, new Rectangle(0, 0, 144, 144));
+
+                }
+                else
+                {
+                    graph.FillRectangle(Brushes.Black, new Rectangle(0, 0, 144, 144));
+                }
 
                 var pos = (144 - 108) / 2;
                 graph.DrawImage(icon, new Rectangle(pos, pos, 108, 108));
@@ -103,13 +111,21 @@ namespace AudioMixer
             };
         }
 
-        public static Image CreateAppKey(Image iconImage, Image volumeImage, Boolean selected, Boolean muted, Boolean exists = true)
+        public static Image CreateAppKey(Image iconImage, Image volumeImage, Boolean selected, Boolean muted, Boolean exists = true, Boolean transparent = false)
         {
             Bitmap clone = new Bitmap(144, 144, PixelFormat.Format32bppArgb);
 
             using (Graphics graph = Graphics.FromImage(clone))
             {
-                graph.FillRectangle(Brushes.Black, new Rectangle(0, 0, 144, 144));
+                if (transparent)
+                {
+                    graph.FillRectangle(Brushes.Transparent, new Rectangle(0, 0, 144, 144));
+
+                }
+                else
+                {
+                    graph.FillRectangle(Brushes.Black, new Rectangle(0, 0, 144, 144));
+                }
 
                 // Scale application icon to fit inside selection box, if selected.
                 Rectangle rect = selected ? new Rectangle(5, 5, 129, 129) : new Rectangle(0, 0, 144, 144);
@@ -117,12 +133,13 @@ namespace AudioMixer
                 if (exists)
                 {
                     graph.DrawImage(iconImage, rect);
-                    graph.DrawImage(volumeImage, rect);
-                } else
+                    if (volumeImage != null) graph.DrawImage(volumeImage, rect);
+                }
+                else
                 {
                     graph.DrawImage(GrauwertBild(new Bitmap(iconImage)), rect);
                 }
-             
+
                 if (exists && muted)
                 {
                     Graphics line = Graphics.FromImage(clone);

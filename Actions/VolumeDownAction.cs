@@ -12,7 +12,7 @@ using static AudioMixer.Utils;
 namespace AudioMixer.Actions
 {
     [PluginActionId("com.javanpoirier.audiomixer.volumedown")]
-    internal class VolumeDownAction : PluginBase
+    internal class VolumeDownAction : KeypadBase
     {
         private class PluginSettings
         {

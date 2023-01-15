@@ -3,6 +3,16 @@
     {
       "Icon": "Images/Placeholder",
       "Name": "Application Placehoder",
+      "Controllers": [ "Keypad", "Encoder" ],
+      "Encoder": {
+        "layout": "$B1",
+        "Icon": "Images/Placeholder",
+        "TriggerDescription": {
+          "Rotate": "Increase/Decrease",
+          "Push": "Toggle mute",
+          "Touch": "Push-Back application to display hidden application"
+        }
+      },
       "States": [
         {
           "Image": "Images/Placeholder",

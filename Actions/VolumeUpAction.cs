@@ -11,7 +11,7 @@ using System.Timers;
 namespace AudioMixer.Actions
 {
     [PluginActionId("com.javanpoirier.audiomixer.volumeup")]
-    internal class VolumeUpAction : PluginBase
+    internal class VolumeUpAction : KeypadBase
     {
         private class PluginSettings
         {

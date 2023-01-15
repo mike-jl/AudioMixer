@@ -11,11 +11,13 @@ using System.Linq;
 using MoreLinq.Extensions;
 using Sentry;
 using System.Diagnostics;
+using BarRaider.SdTools.Payloads;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace AudioMixer
 {
     [PluginActionId("com.javanpoirier.audiomixer.application")]
-    public class ApplicationAction : PluginBase
+    public class ApplicationAction : KeyAndEncoderBase
     {
         public class PluginSettings
         {
@@ -93,8 +95,9 @@ namespace AudioMixer
         private System.Timers.Timer timer = new System.Timers.Timer(200);
         private GlobalSettings globalSettings;
 
-        private Image iconImage;
-        private Image volumeImage;
+        private System.Drawing.Image iconImage;
+        private System.Drawing.Image iconImageTansparent;
+        private System.Drawing.Image volumeImage;
         private float volume;
         private bool muted;
 
@@ -141,7 +144,8 @@ namespace AudioMixer
                 {
                     // TODO: Create & assign a default and merge to allow for compatability of new features.
                     settings = payload.Settings.ToObject<PluginSettings>();
-                } catch (Exception ex)
+                }
+                catch (Exception ex)
                 {
                     Logger.Instance.LogMessage(TracingLevel.ERROR, $"Assigning settings from the constructor payload failed. Resetting...");
                     Connection.LogSDMessage($"Assigning settings from the constructor payload failed. Resetting...");
@@ -262,6 +266,13 @@ namespace AudioMixer
                     if (controlType == Utils.ControlType.Application)
                     {
                         Connection.SetImageAsync(Utils.CreateAppKey(lastKnownIcon, volumeImage, false, false, false), null, true);
+
+                        Dictionary<string, string> dkv = new Dictionary<string, string>();
+                        dkv["icon"] = Tools.ImageToBase64(Utils.CreateAppKey(iconImageTansparent, null, false, false, false, transparent: true), true);
+                        dkv["title"] = settings.StaticApplication.processName;
+                        dkv["value"] = $"{this.volume * 100}%";
+                        dkv["indicator"] = $"{this.volume * 100}";
+                        Connection.SetFeedbackAsync(dkv);
                     }
 
                     SentrySdk.AddBreadcrumb(
@@ -286,6 +297,13 @@ namespace AudioMixer
                     if (controlType == Utils.ControlType.Application)
                     {
                         Connection.SetImageAsync((string)null, null, true);
+
+                        Dictionary<string, string> dkv = new Dictionary<string, string>();
+                        dkv["icon"] = "./Images/Placeholder.png";
+                        dkv["title"] = "";
+                        dkv["value"] = "100%";
+                        dkv["indicator"] = "100";
+                        Connection.SetFeedbackAsync(dkv);
                     }
                 }
             }
@@ -318,8 +336,16 @@ namespace AudioMixer
                     {
                         // Assing all sessions the highest volume value found by triggering a valume change.
                         iconImage = Utils.CreateIconImage(audioSessions.First().processIcon);
+                        iconImageTansparent = Utils.CreateIconImage(audioSessions.First().processIcon, transparent: true);
                         volumeImage = Utils.CreateVolumeImage(this.volume);
                         Connection.SetImageAsync(Utils.CreateAppKey(iconImage, volumeImage, selected, muted), null, true);
+
+                        Dictionary<string, string> dkv = new Dictionary<string, string>();
+                        dkv["icon"] = Tools.ImageToBase64(Utils.CreateAppKey(iconImageTansparent, null, false, muted, transparent: true), true);
+                        dkv["title"] = audioSessions.First().processName;
+                        dkv["value"] = $"{this.volume * 100}%";
+                        dkv["indicator"] = $"{this.volume * 100}";
+                        Connection.SetFeedbackAsync(dkv);
                     }
 
                     Logger.Instance.LogMessage(TracingLevel.INFO, $"Combined audio sessions for process {processName}");
@@ -362,7 +388,17 @@ namespace AudioMixer
                 if (controlType == Utils.ControlType.Application)
                 {
                     // We only want to reset the icon if we don't know what it's next one will be.
-                    if (resetIcon && settings.StaticApplication == null) Connection.SetImageAsync((string)null, null, true);
+                    if (resetIcon && settings.StaticApplication == null)
+                    {
+                        Connection.SetImageAsync((string)null, null, true);
+
+                        Dictionary<string, string> dkv = new Dictionary<string, string>();
+                        dkv["icon"] = "./Images/Placeholder.png";
+                        dkv["title"] = "";
+                        dkv["value"] = "100%";
+                        dkv["indicator"] = "100";
+                        Connection.SetFeedbackAsync(dkv);
+                    }
                 }
 
                 // Iterate through all audio sessions as by this time it could already been removed.
@@ -371,7 +407,8 @@ namespace AudioMixer
                     session.SessionDisconnnected -= SessionDisconnected;
                     session.VolumeChanged -= VolumeChanged;
                 });
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 Logger.Instance.LogMessage(TracingLevel.WARN, ex.Message);
                 SentrySdk.CaptureException(ex, scope => { scope.TransactionName = "ApplicationAction"; });
@@ -437,6 +474,12 @@ namespace AudioMixer
                 volumeImage = Utils.CreateVolumeImage(volume);
                 Boolean selected = pluginController.SelectedAction == this;
                 Connection.SetImageAsync(Utils.CreateAppKey(iconImage, volumeImage, selected, muted), null, true);
+
+                Dictionary<string, string> dkv = new Dictionary<string, string>();
+                dkv["icon"] = Tools.ImageToBase64(Utils.CreateAppKey(iconImageTansparent, null, false, muted, transparent: true), true);
+                dkv["value"] = $"{this.volume * 100}%";
+                dkv["indicator"] = $"{this.volume * 100}";
+                Connection.SetFeedbackAsync(dkv);
             }
         }
 
@@ -496,8 +539,10 @@ namespace AudioMixer
                 {
                     ToggleBlacklistApp(processName);
 
-                } else if (AudioSessions.Count > 0) pluginController.SelectedAction = this;
-            } else
+                }
+                else if (AudioSessions.Count > 0) pluginController.SelectedAction = this;
+            }
+            else
             {
                 SetVolume();
             }
@@ -653,8 +698,9 @@ namespace AudioMixer
             // If this is a static process which does not have an active audio session, add it to the selector.
             if (settings.StaticApplication != null)
             {
-                var staticApplication = settings.StaticApplicationSelector.Find(app => app.processName == settings.StaticApplication.processName); 
-                if (staticApplication == null) {
+                var staticApplication = settings.StaticApplicationSelector.Find(app => app.processName == settings.StaticApplication.processName);
+                if (staticApplication == null)
+                {
                     settings.StaticApplicationSelector.Add(settings.StaticApplication);
                 }
             }
@@ -766,7 +812,8 @@ namespace AudioMixer
 
                 await SaveGlobalSettings();
                 await SaveSettings();
-            } catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 Logger.Instance.LogMessage(TracingLevel.ERROR, $"{GetType()} ReceivedSettings Exception: {ex}");
                 SentrySdk.CaptureException(ex, scope => { scope.TransactionName = "ApplicationAction"; });
@@ -797,7 +844,7 @@ namespace AudioMixer
                 level: BreadcrumbLevel.Info,
                 data: new Dictionary<string, string> { { "setting", settings.ToString() } }
             );
-            
+
             if (includeGlobal)
             {
                 globalSettings = GlobalSettings.CreateDefaultSettings();
@@ -823,12 +870,12 @@ namespace AudioMixer
 
                     settings.StaticApplication = null;
                     settings.StaticApplicationName = null;
-                }  
+                }
             }
             else
             {
                 // If one was previously set, remove it.
-                if (settings.StaticApplication != null) 
+                if (settings.StaticApplication != null)
                 {
                     var staticApplication = globalSettings.StaticApplications.Find(session => session.processName == settings.StaticApplication.processName);
                     globalSettings.StaticApplications.Remove(staticApplication);
@@ -902,5 +949,62 @@ namespace AudioMixer
         }
 
         public override void OnTick() { }
+
+        public override void DialRotate(DialRotatePayload payload)
+        {
+            var volChange = ((float)(payload.Ticks * Int32.Parse(settings.VolumeStep)) / 100);
+            var newVolume = Math.Round(AudioSessions.First().session.SimpleAudioVolume.Volume + volChange, 2);
+            AudioSessions.First().session.SimpleAudioVolume.Volume = (float)newVolume;
+        }
+
+        public override void DialPress(DialPressPayload payload)
+        {
+            stopWatch.Stop();
+
+            if (controlType == Utils.ControlType.Application)
+            {
+                if (processName == null) return;
+
+                if (payload.IsDialPressed)
+                {
+                    stopWatch.Restart();
+                }
+                else
+                {
+                    if (stopWatch.ElapsedMilliseconds >= 2000)
+                    {
+                        ToggleBlacklistApp(processName);
+                    }
+                    else
+                    {
+                        AudioSessions.First().session.SimpleAudioVolume.Mute ^= true;
+                    }
+                }
+            }
+        }
+
+        public override void TouchPress(TouchpadPressPayload payload)
+        {
+            // get all audio session names
+            List<string> sessionNames = new List<string>();
+            foreach (var session in pluginController.audioManager.audioSessions)
+            {
+                sessionNames.Add(session.processName);
+            }
+
+            // check if there are audio sessions without an action
+            foreach (var action in pluginController.applicationActions)
+            {
+                sessionNames.Remove(action.processName);
+            }
+
+            // if there are more sessions then action, push action back and reload
+            if (sessionNames.Count > 0)
+            {
+                int index = pluginController.audioManager.audioSessions.FindIndex(a => a.processName == processName);
+                pluginController.audioManager.PushBackAudioSession(index);
+                pluginController.UpdateActions();
+            }
+        }
     }
 }

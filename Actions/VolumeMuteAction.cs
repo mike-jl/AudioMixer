@@ -11,7 +11,7 @@ using System.Timers;
 namespace AudioMixer.Actions
 {
     [PluginActionId("com.javanpoirier.audiomixer.volumemute")]
-    internal class VolumeMuteAction : PluginBase
+    internal class VolumeMuteAction : KeypadBase
     {
         private class PluginSettings
         {

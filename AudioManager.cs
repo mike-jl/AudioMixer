@@ -59,6 +59,13 @@ namespace AudioMixer
             }
         }
 
+        public void PushBackAudioSession(int sessionIndex)
+        {
+            var session = audioSessions[sessionIndex];
+            audioSessions.RemoveAt(sessionIndex);
+            audioSessions.Add(session);
+        }
+
         private void Dispose()
         {
             deviceEnum.UnregisterEndpointNotificationCallback(this);
