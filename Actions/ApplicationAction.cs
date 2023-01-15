@@ -994,7 +994,10 @@ namespace AudioMixer
             List<string> sessionNames = new List<string>();
             foreach (var session in pluginController.audioManager.audioSessions)
             {
-                sessionNames.Add(session.processName);
+                if (!settings.BlacklistedApplications.Any(a => a.processName == session.processName))
+                {
+                    sessionNames.Add(session.processName);
+                }
             }
 
             // check if there are audio sessions without an action
