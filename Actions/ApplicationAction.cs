@@ -102,7 +102,10 @@ namespace AudioMixer
         private bool muted;
 
         public readonly string coords;
+        public readonly int coordRow;
+        public readonly int coordCol;
         public string processName;
+
         public PluginSettings settings;
 
         public List<AudioSession> AudioSessions { get => pluginController.audioManager.audioSessions.ToList().FindAll(session => session.processName == processName); }
@@ -124,6 +127,8 @@ namespace AudioMixer
                 SentrySdk.CaptureMessage("Initialized", scope => scope.TransactionName = "ApplicationAction", SentryLevel.Info);
             }
 
+            coordRow = payload.Coordinates.Row;
+            coordCol = payload.Coordinates.Column;
             coords = $"{payload.Coordinates.Column} {payload.Coordinates.Row}";
             Logger.Instance.LogMessage(TracingLevel.INFO, $"Initializing key at: {coords}");
             Connection.LogSDMessage($"Initializing key at: {coords}");

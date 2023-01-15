@@ -1,4 +1,5 @@
 ﻿using BarRaider.SdTools;
+using NAudio.Gui;
 using Newtonsoft.Json.Linq;
 using Sentry;
 using streamdeck_client_csharp;
@@ -70,6 +71,7 @@ namespace AudioMixer
         public void AddAction(ApplicationAction action)
         {
             applicationActions.Add(action);
+            applicationActions = applicationActions.OrderBy(a => (a.coordRow * 100) + a.coordCol).ToList();
             UpdateActions();
         }
 
